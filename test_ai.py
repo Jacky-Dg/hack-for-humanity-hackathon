@@ -101,8 +101,9 @@ def test_offline():
     assert pick_route(shared, [], "walking_aid", FakeClient(reply("west")))["avoided"] == []
 
     # No reports picks the shortest, and rules never call a route safe.
-    result = pick_route(contexts({}), [], "wheelchair", DOWN)
-    assert result["route_id"] == "direct"
+    result = pick_route(contexts({}), [], "wheelchair", FakeClient(reply("east")))
+    assert result["route_id"] == "direct" and result["source"] == "rules"
+    assert "No obstacles have been reported" in result["explanation"]
     assert "safe" not in result["explanation"].lower()
 
     print("Offline checks passed.")

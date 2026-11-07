@@ -207,6 +207,17 @@ def pick_route(routes, reports, profile, client=None):
             "source": "rules",
         }
 
+    # Nothing reported anywhere: answer directly so Gemini can't invent obstacles.
+    if not any(route["nearby_reports"] for route in routes):
+        best = _best_route(routes)
+        return {
+            "route_id": best["id"],
+            "explanation": f"No obstacles have been reported on any route yet, so {best['name']} is suggested because it is the shortest.",
+            "avoided": [],
+            "on_route": [],
+            "source": "rules",
+        }
+
     cache_key = json.dumps([routes, profile], sort_keys=True, default=str)
     if client is None and cache_key in _cache:
         return _cache[cache_key]
