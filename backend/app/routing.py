@@ -7,7 +7,7 @@ import httpx
 from fastapi import HTTPException
 from .config import ORS_KEY
 from .city import affects_profile, all_reports
-from .analysis import explain_route
+from .analysis import choose_route, explain_route
 
 PROFILE_MAP={'standard':'foot-walking','wheelchair':'wheelchair','cane':'foot-walking','crutches':'foot-walking','low_vision':'foot-walking'}
 
@@ -75,11 +75,26 @@ def campus_demo(profile,reports):
         near=hazards_near(points,reports,profile,30)
         scored.append((len(near),len(points),r,points,near))
     _,_,choice,points,near=min(scored,key=lambda x:(x[0],x[1]))
+    explanation='Campus demonstration: selected a predefined illustrative line with fewer nearby reports. Actual path accessibility and connectivity have not been verified.'
+    decided_by='rules'
+    # Gemini chooses the route for this profile; code supplies the facts and checks the choice.
+    candidates=[{'id':r['id'],'name':r.get('name',r['id']),'points':p,'reports':n,
+                 'length_m':round(sum(haversine(a,b) for a,b in zip(p,p[1:])))} for _,_,r,p,n in scored]
+    if any(c['reports'] for c in candidates):
+        pick=choose_route(profile,candidates)
+        if pick:
+            chosen=next(c for c in candidates if c['id']==pick.route_id)
+            blocked=lambda c:any(r.get('severity')=='impassable' for r in c['reports'])
+            if not (blocked(chosen) and not all(blocked(c) for c in candidates)):
+                choice=next(r for _,_,r,_,_ in scored if r['id']==chosen['id'])
+                points,near,explanation,decided_by=chosen['points'],chosen['reports'],pick.explanation,'gemini'
+    else:
+        explanation='No reports were found near any campus candidate, so the shortest line was chosen. This does not establish that the path is accessible.'
     return {'mode':'demo','provider':'Illustrative campus polylines (NOT actual navigable directions)',
             'route':{'id':choice['id'],'points':points,'distance_m':round(sum(haversine(a,b) for a,b in zip(points,points[1:]))), 'duration_s':None},
             'baseline':{'points':[list(p) for p in mod.ROUTES[0]['points']]},
             'alerts':[{'id':r['id'],'category':r['category'],'source':r['source'],'description':r['description'],'distance_m':round(r['distance_m'])} for r in near[:12]],
-            'changed':choice['id']!=mod.ROUTES[0]['id'], 'explanation':'Campus demonstration: selected a predefined illustrative line with fewer nearby reports. Actual path accessibility and connectivity have not been verified.',
+            'changed':choice['id']!=mod.ROUTES[0]['id'], 'explanation':explanation, 'decided_by':decided_by,
             'caveat':'NOT NAVIGATION: lines are unsurveyed candidates. Do not rely on them for travel.'}
 
 def find_route(start,end,profile):
