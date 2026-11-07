@@ -41,6 +41,8 @@ PROFILES = {"wheelchair", "walking_aid"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 _LOCK = threading.RLock()
 DUPLICATE_RADIUS_M = 15  # same obstacle type reported this close = duplicate
+PHOTO_COMPARE_RADIUS_M = 30  # any type this close: ask Gemini if the photos match
+PHOTO_COMPARE_MAX = 2        # compare against at most this many nearest reports
 
 
 def _meters_between(lat1, lng1, lat2, lng2) -> float:
@@ -63,6 +65,34 @@ def _find_duplicate(rows: list[dict], photo_hash: str, lat: float, lng: float,
         if row.get("type") == obstacle_type and far <= DUPLICATE_RADIUS_M:
             label = obstacle_type.replace("_", " ")
             return f"This obstacle ({label}) was already reported {far:.0f} m from here, so no new pin was added."
+    return None
+
+
+def _photo_duplicate(rows: list[dict], jpeg: bytes, lat: float, lng: float) -> str | None:
+    """Ask Gemini whether the new photo shows the same obstacle as a nearby report.
+    Any failure (no analyze.py, missing photo, Gemini error/timeout) = not a duplicate."""
+    try:
+        from analyze import same_obstacle
+    except ImportError:
+        return None
+    nearby = []
+    for row in rows:
+        try:
+            far = _meters_between(lat, lng, float(row["lat"]), float(row["lng"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        photo_file = BASE_DIR / str(row.get("photo_url") or "")
+        if far <= PHOTO_COMPARE_RADIUS_M and row.get("photo_url") and photo_file.is_file():
+            nearby.append((far, row, photo_file))
+    for far, row, photo_file in sorted(nearby, key=lambda x: x[0])[:PHOTO_COMPARE_MAX]:
+        try:
+            old = photo_file.read_bytes()
+        except OSError:
+            continue
+        if same_obstacle(jpeg, old) is True:
+            label = str(row.get("type", "obstacle")).replace("_", " ")
+            return (f"This looks like the same obstacle ({label}) already reported "
+                    f"{far:.0f} m from here, so no new pin was added.")
     return None
 
 
@@ -221,6 +251,13 @@ def save_report(photo, lat: float, lng: float, analysis: dict,
         "photo_sha256": photo_hash,
         "reported_at": _timestamp(),
     }
+
+    # Cheap checks first, then the slower Gemini photo comparison, outside the lock.
+    snapshot = load_reports()
+    duplicate = (_find_duplicate(snapshot, photo_hash, lat, lng, clean_analysis["type"])
+                 or _photo_duplicate(snapshot, jpeg, lat, lng))
+    if duplicate:
+        raise ValueError(duplicate)
 
     with _LOCK:
         rows = _load_list(REPORTS_FILE)

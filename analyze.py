@@ -154,6 +154,44 @@ def analyze_photo(image_bytes):
     return None
 
 
+class SameObstacle(BaseModel):
+    same: bool
+
+
+SAME_PROMPT = """\
+Two people reported an accessibility obstacle at nearly the same spot on the UC San Diego
+campus. Photo 1 is the new report; photo 2 is an existing report. Do they show the SAME
+physical obstacle (the same staircase, ramp, elevator, construction site, or debris),
+possibly from a different angle, distance, lighting, or time of day?
+Answer same=true only if you are fairly confident it is the same obstacle. If they show
+different obstacles, or you can't tell, answer same=false."""
+SAME_TIMEOUT_MS = 10_000
+
+
+def same_obstacle(new_photo, old_photo):
+    """True/False = Gemini's verdict; None = couldn't decide (errors/timeouts on both models)."""
+    try:
+        a, b = _prep(new_photo), _prep(old_photo)
+    except Exception as e:
+        print(f"same_obstacle: unreadable image: {e}", file=sys.stderr)
+        return None
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=SameObstacle,
+        temperature=0.0,
+        http_options=types.HttpOptions(timeout=SAME_TIMEOUT_MS),
+    )
+    contents = [SAME_PROMPT, "Photo 1 (new):", types.Part.from_bytes(data=a, mime_type="image/jpeg"),
+                "Photo 2 (existing):", types.Part.from_bytes(data=b, mime_type="image/jpeg")]
+    for model in [MODEL, FALLBACK_MODEL]:
+        try:
+            resp = _client_().models.generate_content(model=model, config=config, contents=contents)
+            return SameObstacle.model_validate(json.loads(resp.text)).same
+        except Exception as e:
+            print(f"same_obstacle ({model}) failed: {str(e)[:120]}", file=sys.stderr)
+    return None
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit(__doc__)
