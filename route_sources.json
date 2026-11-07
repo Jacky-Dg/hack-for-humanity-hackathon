@@ -1,0 +1,196 @@
+{
+  "downloaded_at": "2026-11-07",
+  "source": "OpenStreetMap contributors",
+  "license": "ODbL",
+  "attribution_url": "https://www.openstreetmap.org/copyright",
+  "extract_bbox": [
+    -117.24,
+    32.8785,
+    -117.235,
+    32.882
+  ],
+  "routes": [
+    {
+      "id": "direct",
+      "node_ids": [
+        "9429180937",
+        "10299244033",
+        "469081873",
+        "10297064190",
+        "9548579820",
+        "9548579821",
+        "9548579822",
+        "9620619955",
+        "469081875",
+        "9620619953",
+        "5546557189",
+        "9548579823",
+        "469081877",
+        "9620619957",
+        "469081878",
+        "1668259917",
+        "9674860393",
+        "1668259887",
+        "1668259900",
+        "1668259914",
+        "1668259868",
+        "1668259896",
+        "1668259916",
+        "1668259895",
+        "1545531402",
+        "1545531404",
+        "1545531405",
+        "1545531406",
+        "1545531407"
+      ],
+      "ways": [
+        {
+          "id": "455157523",
+          "url": "https://www.openstreetmap.org/way/455157523",
+          "tags": {
+            "bicycle": "designated",
+            "bicycle:conditional": "no @ (Mo-Fr 08:30-17:00)",
+            "est_width": "6",
+            "foot": "yes",
+            "highway": "pedestrian",
+            "name": "Library Walk",
+            "oneway": "no",
+            "surface": "paved"
+          }
+        },
+        {
+          "id": "39159743",
+          "url": "https://www.openstreetmap.org/way/39159743",
+          "tags": {
+            "highway": "pedestrian",
+            "noname": "yes",
+            "oneway": "no",
+            "segregated": "no",
+            "surface": "concrete",
+            "width": "6"
+          }
+        },
+        {
+          "id": "39159745",
+          "url": "https://www.openstreetmap.org/way/39159745",
+          "tags": {
+            "foot": "yes",
+            "highway": "footway"
+          }
+        },
+        {
+          "id": "577838778",
+          "url": "https://www.openstreetmap.org/way/577838778",
+          "tags": {
+            "highway": "footway",
+            "surface": "paved"
+          }
+        }
+      ]
+    },
+    {
+      "id": "west",
+      "node_ids": [
+        "9429180937",
+        "10299244033",
+        "469081873",
+        "10297064190",
+        "9548579820",
+        "9548579821",
+        "9548579822",
+        "9620619955",
+        "469081875",
+        "9620619953",
+        "5546557189",
+        "9548579823",
+        "469081877",
+        "9620619957",
+        "469081878",
+        "9620619959",
+        "5546557188",
+        "469081879",
+        "5546557186",
+        "5546557187",
+        "5404634618",
+        "9620619960",
+        "5404634617",
+        "5404634616",
+        "5404634615",
+        "10296140532",
+        "1545531391",
+        "1545531402",
+        "1668259895",
+        "1668259922",
+        "1668259884",
+        "1668259878",
+        "9674860392",
+        "1668259863",
+        "1668259864",
+        "1668259928",
+        "1668259925",
+        "1545531409",
+        "1545531408",
+        "1545531407"
+      ],
+      "ways": [
+        {
+          "id": "455157523",
+          "url": "https://www.openstreetmap.org/way/455157523",
+          "tags": {
+            "bicycle": "designated",
+            "bicycle:conditional": "no @ (Mo-Fr 08:30-17:00)",
+            "est_width": "6",
+            "foot": "yes",
+            "highway": "pedestrian",
+            "name": "Library Walk",
+            "oneway": "no",
+            "surface": "paved"
+          }
+        },
+        {
+          "id": "39159743",
+          "url": "https://www.openstreetmap.org/way/39159743",
+          "tags": {
+            "highway": "pedestrian",
+            "noname": "yes",
+            "oneway": "no",
+            "segregated": "no",
+            "surface": "concrete",
+            "width": "6"
+          }
+        },
+        {
+          "id": "560422834",
+          "url": "https://www.openstreetmap.org/way/560422834",
+          "tags": {
+            "highway": "footway"
+          }
+        },
+        {
+          "id": "577838778",
+          "url": "https://www.openstreetmap.org/way/577838778",
+          "tags": {
+            "highway": "footway",
+            "surface": "paved"
+          }
+        },
+        {
+          "id": "39159745",
+          "url": "https://www.openstreetmap.org/way/39159745",
+          "tags": {
+            "foot": "yes",
+            "highway": "footway"
+          }
+        },
+        {
+          "id": "1052752537",
+          "url": "https://www.openstreetmap.org/way/1052752537",
+          "tags": {
+            "foot": "yes",
+            "highway": "footway"
+          }
+        }
+      ]
+    }
+  ]
+}
