@@ -125,8 +125,8 @@ else:
 
 with st.sidebar:
     st.header("Plan your path")
-    profile = st.radio("Mobility profile", ["wheelchair", "low_vision"],
-                       format_func=lambda p: {"wheelchair": "Wheelchair", "low_vision": "Low vision"}[p])
+    profile = st.radio("Mobility profile", ["wheelchair", "walking_aid"],
+                       format_func=lambda p: {"wheelchair": "Wheelchair", "walking_aid": "Walker / crutches / cane"}[p])
     st.text_input("From", START_NAME, disabled=True)
     st.text_input("To", END_NAME, disabled=True)
     st.button("Refresh reports", use_container_width=True)

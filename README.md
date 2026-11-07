@@ -23,6 +23,12 @@ No API key is required to display the map. Map tiles require internet access.
   `{"route_id": "west", "explanation": "..."}`. Called only on button press.
   `routes` contains the route id, name, points, verified flag, and `nearby_reports`.
   These nearby reports have already been filtered for the selected profile.
+  Profiles are `wheelchair` (Wheelchair) and `walking_aid` (Walker / crutches / cane).
+  Reports use `"affects": {"wheelchair": true, "walking_aid": false}`.
+  The frontend filters those flags directly; it does not reclassify photos.
+  Wheelchair route guidance: prefer flat, wide, step-free paths, even if longer.
+  Walking-aid route guidance: prefer the shortest safe path; narrow paths alone
+  need not exclude it. Consider railings, uneven pavement, slopes, and slippery surfaces.
   Return `{"route_id": null, "explanation": "..."}` if none can be recommended.
   Handle all candidates being blocked; do not describe any unverified path as safe.
   The UI validates the returned ID and hides old recommendations after data/profile changes.
@@ -46,7 +52,8 @@ Building locations do not establish accessible entrances or path geometry.
 ## Five-minute demo check
 
 1. Load your team's real reports and photos.
-2. Switch wheelchair / low vision; confirm the expected pins and counts change.
+2. Switch Wheelchair / Walker / crutches / cane; confirm the expected pins and counts change.
+   For the narrow-path demo, use a report with wheelchair=true, walking_aid=false.
 3. Click a pin; verify severity, explanation, timestamp, and photo.
 4. Preview each route; check the highlighted line and nearby report counts.
 5. Connect the AI hook and press Ask Gemini to compare.
