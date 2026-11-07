@@ -82,7 +82,11 @@ def build_map(reports, routes, selected_id=None, location=None):
                         weight=8 if selected else 4, opacity=1 if selected else .65,
                         dash_array=None if selected else "8 8",
                         tooltip=route["name"] + " — unverified candidate").add_to(campus)
-    for point, name, icon in [(START, START_NAME, "play"), (END, END_NAME, "flag")]:
+    start = routes[0]["points"][0] if routes else START
+    end = routes[0]["points"][-1] if routes else END
+    start_name = routes[0].get("start_name", START_NAME) if routes else START_NAME
+    end_name = routes[0].get("end_name", END_NAME) if routes else END_NAME
+    for point, name, icon in [(start, start_name, "play"), (end, end_name, "flag")]:
         folium.Marker(point, tooltip=name,
                       icon=folium.Icon(color="blue", icon=icon)).add_to(campus)
     for report in reports:

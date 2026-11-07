@@ -123,28 +123,48 @@ elif location and "error" in location:
 else:
     st.info("Waiting for GPS location...")
 
+def change_endpoint(changed):
+    other = "destination" if changed == "origin" else "origin"
+    st.session_state[other] = END_NAME if st.session_state[changed] == START_NAME else START_NAME
+    st.session_state.pop("recommendation", None)
+
+
+st.session_state.setdefault("origin", START_NAME)
+st.session_state.setdefault("destination", END_NAME)
+
 with st.sidebar:
     st.header("Plan your path")
     profile = st.radio("Mobility profile", ["wheelchair", "walking_aid"],
                        format_func=lambda p: {"wheelchair": "Wheelchair", "walking_aid": "Walker / crutches / cane"}[p])
-    st.text_input("From", START_NAME, disabled=True)
-    st.text_input("To", END_NAME, disabled=True)
+    origin = st.selectbox("From", [START_NAME, END_NAME], key="origin",
+                          on_change=change_endpoint, args=("origin",))
+    destination = st.selectbox("To", [START_NAME, END_NAME], key="destination",
+                               on_change=change_endpoint, args=("destination",))
+    st.caption("Demo locations: Library Walk and Geisel. Select either direction.")
     st.button("Refresh reports", use_container_width=True)
     show_all = st.checkbox("Show reports for both profiles", value=False)
     st.divider()
     st.markdown("🔴 **Impassable** · 🟠 **Difficult** · 🟢 **Minor**")
     st.caption("Severity and affected profiles are report assessments, not verified measurements.")
 
+active_routes = [
+    {**route,
+     "points": list(reversed(route["points"])) if origin == END_NAME else list(route["points"]),
+     "start_name": origin, "end_name": destination}
+    for route in ROUTES
+]
+journey = (origin, destination)
+
 reports = load_reports()
 visible = [r for r in reports if r.get("is_obstacle") is True] if show_all else relevant_reports(reports, profile)
-contexts = route_context(ROUTES, reports, profile)
+contexts = route_context(active_routes, reports, profile)
 st.warning("Prototype: routes follow OpenStreetMap path geometry. Accessibility and current conditions have not been checked on site.")
 
 map_col, info_col = st.columns([2.2, 1], gap="large")
 with info_col:
     st.subheader("Route comparison")
-    selected_id = st.selectbox("Preview a candidate", [r["id"] for r in ROUTES],
-                               format_func=lambda rid: next(r["name"] for r in ROUTES if r["id"] == rid),
+    selected_id = st.selectbox("Preview route", [r["id"] for r in active_routes],
+                               format_func=lambda rid: next(r["name"] for r in active_routes if r["id"] == rid),
                                on_change=lambda: st.session_state.pop("recommendation", None))
     for candidate in contexts:
         nearby = candidate["nearby_reports"]
@@ -160,24 +180,24 @@ with info_col:
             try:
                 with st.spinner("Comparing reported obstacles…"):
                     result = pick_route(contexts, reports, profile)
-                if not isinstance(result, dict) or "route_id" not in result or result.get("route_id") not in {None, *(r["id"] for r in ROUTES)} or not isinstance(result.get("explanation"), str):
+                if not isinstance(result, dict) or "route_id" not in result or result.get("route_id") not in {None, *(r["id"] for r in active_routes)} or not isinstance(result.get("explanation"), str):
                     raise ValueError("Expected route_id and explanation")
-                st.session_state["recommendation"] = {"profile": profile, "reports": reports, "result": result}
+                st.session_state["recommendation"] = {"profile": profile, "reports": reports, "journey": journey, "result": result}
             except Exception as exc:
                 st.error(f"Route comparison unavailable: {exc}")
     saved = st.session_state.get("recommendation")
-    if saved and saved["profile"] == profile and saved["reports"] == reports:
+    if saved and saved["profile"] == profile and saved["reports"] == reports and saved.get("journey") == journey:
         result = saved["result"]
         selected_id = result["route_id"]
         if selected_id is None:
             st.warning("Gemini could not recommend a candidate from the available evidence.")
         else:
-            st.info(f'Gemini suggests: {next(r["name"] for r in ROUTES if r["id"] == selected_id)}')
+            st.info(f'Gemini suggests: {next(r["name"] for r in active_routes if r["id"] == selected_id)}')
         st.write(result["explanation"])
     st.metric("Reports shown", len(visible))
 
 with map_col:
-    map_result = st_folium(build_map(visible, ROUTES, selected_id,
+    map_result = st_folium(build_map(visible, active_routes, selected_id,
                           st.session_state.get("report_location")),
                           height=580, use_container_width=True,
                           returned_objects=["last_clicked"], key="campus_map")
