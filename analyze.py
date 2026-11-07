@@ -23,8 +23,8 @@ try:  # iPhone photos are HEIC; without this Pillow can't open them
 except ImportError:
     pass
 
-MODEL = "gemini-3.8-flash"
-FALLBACK_MODEL = "gemini-3.5-flash"  # used for the retry (Gemini 503/504s under load)
+MODEL = "gemini-3.5-flash"
+FALLBACK_MODEL = "gemini-3.1-flash-lite"  # used for the retry (Gemini 503/504s under load)
 TIMEOUT_MS = 20_000
 
 
