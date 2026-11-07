@@ -20,7 +20,7 @@ def show_get_it_done_map() -> None:
     st.warning(
         "City resident reports (unverified), NOT UCSD campus obstacles. Gemini estimated "
         "each report's impact from the city's category only (no photo), so severity is a "
-        "likely impact, not a confirmed one. These reports do NOT affect ClearPath route recommendations."
+        "likely impact, not a confirmed one. Likely hazards within 15 m of a route are included when Gemini compares routes."
     )
     path = ROOT / "get_it_done_demo.json"
     if not path.exists():

@@ -137,7 +137,9 @@ with st.sidebar:
 
 reports = load_reports()
 visible = [r for r in reports if r.get("is_obstacle") is True] if show_all else relevant_reports(reports, profile)
-contexts = route_context(ROUTES, reports, profile)
+from assess_city import load_city_hazards
+# City reports Gemini rated as likely hazards count too, when they are near a route.
+contexts = route_context(ROUTES, reports + load_city_hazards(), profile)
 st.warning("Prototype: route lines are hand-drawn, unverified candidates. Check paths on site before using them for navigation.")
 
 map_col, info_col = st.columns([2.2, 1], gap="large")

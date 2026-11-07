@@ -126,6 +126,15 @@ def assess(records, client=None):
     return count
 
 
+def load_city_hazards(path=DATA):
+    """Gemini-assessed city reports that are likely walking hazards, for route picking."""
+    try:
+        records = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return [r for r in records if isinstance(r, dict) and r.get("assessed_by") and r.get("is_obstacle")]
+
+
 def main():
     records = json.loads(DATA.read_text(encoding="utf-8"))
     try:
