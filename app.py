@@ -61,7 +61,7 @@ with st.sidebar:
 reports = load_reports()
 visible = [r for r in reports if r.get("is_obstacle") is True] if show_all else relevant_reports(reports, profile)
 contexts = route_context(ROUTES, reports, profile)
-st.warning("Prototype: route lines are hand-drawn, unverified candidates. Check paths on site before using them for navigation.")
+st.warning("Prototype: routes follow OpenStreetMap path geometry. Accessibility and current conditions have not been checked on site.")
 
 map_col, info_col = st.columns([2.2, 1], gap="large")
 with info_col:
@@ -72,7 +72,7 @@ with info_col:
     for candidate in contexts:
         nearby = candidate["nearby_reports"]
         blocked = sum(r.get("severity") == "impassable" for r in nearby)
-        st.markdown(f'**{candidate["name"]}** — {len(nearby)} nearby reports' + (f" · {blocked} impassable" if blocked else ""))
+        st.markdown(f'**{candidate["name"]}** · about {candidate["distance_m"]} m — {len(nearby)} nearby reports' + (f" · {blocked} impassable" if blocked else ""))
     st.caption("Nearby = within 15 m of a candidate line; proximity does not prove a path is blocked. No reports does not mean a path is clear.")
     if st.button("Ask Gemini to compare", type="primary", use_container_width=True):
         try:
