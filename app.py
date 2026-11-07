@@ -5,6 +5,9 @@ from pathlib import Path
 
 import streamlit as st
 from streamlit_folium import st_folium
+from streamlit_js_eval import get_geolocation
+
+from backend import save_report
 
 from map_ui import build_map, local_photo, relevant_reports, route_context
 from routes import ROUTES, START_NAME, END_NAME
@@ -45,6 +48,80 @@ def load_reports():
 st.title("ClearPath")
 st.markdown("### Campus paths change. Your map should too.")
 st.caption("UC San Diego · Photo-backed community obstacle reports")
+
+# ==========================================
+# AUTOMATIC GPS LOCATION
+# ==========================================
+
+if "report_location" not in st.session_state:
+    st.session_state["report_location"] = None
+
+if "gps_request" not in st.session_state:
+    st.session_state["gps_request"] = 0
+
+# Allow the user to refresh their location
+if st.button("📍 Refresh GPS Location"):
+    st.session_state["gps_request"] += 1
+    st.session_state["use_new_gps"] = True
+
+# Ask browser for location permission
+gps_key = f"clearpath_gps_{st.session_state['gps_request']}"
+
+location = get_geolocation(component_key=gps_key)
+
+if location and "coords" in location:
+
+    coords = location["coords"]
+
+    latitude = coords["latitude"]
+    longitude = coords["longitude"]
+
+    # Only process each location request once
+    if st.session_state.get("last_gps_key") != gps_key:
+
+        st.session_state["gps_location"] = {
+            "lat": latitude,
+            "lng": longitude,
+            "accuracy": coords.get("accuracy")
+        }
+
+        # Initialize report location from GPS.
+        # Preserve manually selected map locations,
+        # unless the user explicitly refreshes GPS.
+        if (
+            st.session_state["report_location"] is None
+            or st.session_state.get("use_new_gps", False)
+        ):
+            st.session_state["report_location"] = [
+                latitude,
+                longitude
+            ]
+
+        st.session_state["last_gps_key"] = gps_key
+        st.session_state["use_new_gps"] = False
+
+    st.success("📍 GPS location detected!")
+
+    accuracy = coords.get("accuracy")
+
+    if accuracy is not None:
+        st.caption(f"Location accuracy: ±{accuracy:.0f} meters")
+
+        if accuracy > 30:
+            st.warning(
+                "GPS accuracy is limited. "
+                "Please verify the obstacle location on the map."
+            )
+
+elif location and "error" in location:
+
+    st.warning(
+        "GPS unavailable. You can still select "
+        "the obstacle location manually on the map."
+    )
+
+else:
+    st.info("Waiting for GPS location...")
 
 with st.sidebar:
     st.header("Plan your path")
@@ -105,12 +182,144 @@ with map_col:
                           height=580, use_container_width=True,
                           returned_objects=["last_clicked"], key="campus_map")
     clicked = (map_result or {}).get("last_clicked")
-    if clicked:
-        st.session_state["report_location"] = [clicked["lat"], clicked["lng"]]
+
+if clicked:
+    click_position = (
+        clicked["lat"],
+        clicked["lng"]
+    )
+
+    # Avoid reapplying an old click on every rerun
+    if st.session_state.get("last_map_click") != click_position:
+
+        st.session_state["report_location"] = [
+            clicked["lat"],
+            clicked["lng"]
+        ]
+
+        st.session_state["last_map_click"] = click_position
     location = st.session_state.get("report_location")
     st.caption("Click the map to select a location for the report team.")
     if location:
         st.code(json.dumps({"lat": round(location[0], 6), "lng": round(location[1], 6)}), language="json")
+
+# ==========================================
+# REPORT AN OBSTACLE
+# ==========================================
+
+st.divider()
+st.subheader("🚧 Report an Accessibility Obstacle")
+
+st.write(
+    "Help make UCSD more accessible by reporting "
+    "blocked ramps, broken elevators, construction, "
+    "or other obstacles."
+)
+
+# STEP 1: Choose photo source
+photo_source = st.radio(
+    "How would you like to submit your photo?",
+    ["Camera", "Upload Photo"],
+    horizontal=True
+)
+
+if photo_source == "Camera":
+
+    photo = st.camera_input(
+        "📸 Take a photo of the obstacle"
+    )
+
+else:
+
+    photo = st.file_uploader(
+        "Upload an obstacle photo",
+        type=["jpg", "jpeg", "png", "webp"]
+    )
+
+
+# STEP 2: Get obstacle location
+report_location = st.session_state.get("report_location")
+
+st.markdown("#### 📍 Obstacle Location")
+
+if report_location:
+
+    lat, lng = report_location
+
+    st.success("Location selected!")
+
+    st.write(f"Latitude: {lat:.6f}")
+    st.write(f"Longitude: {lng:.6f}")
+
+    st.caption(
+        "Please check that this location marks the obstacle. "
+        "Tap the map above to correct it."
+    )
+
+else:
+
+    st.warning(
+        "Location unavailable. Enable GPS or "
+        "tap the obstacle location on the map."
+    )
+
+
+# STEP 3: Confirm and submit
+confirmed = st.checkbox(
+    "I confirm that the selected location is correct."
+)
+
+if st.button(
+    "Submit Obstacle Report",
+    type="primary",
+    disabled=(
+        photo is None
+        or report_location is None
+        or not confirmed
+    )
+):
+
+    try:
+
+        # Import AI functionality
+        from ai import analyze_photo
+
+        with st.spinner("Gemini is analyzing your photo..."):
+
+            # STEP 4: Analyze photo using Gemini
+            analysis = analyze_photo(
+                photo.getvalue()
+            )
+
+            # STEP 5: Save report using backend
+            report = save_report(
+                photo,
+                lat,
+                lng,
+                analysis
+            )
+
+        st.success(
+            f"✅ Obstacle successfully reported! ID: {report['id']}"
+        )
+
+        # STEP 6: Refresh application
+        st.rerun()
+
+    except ImportError:
+
+        st.error(
+            "Gemini photo analysis is not connected yet. "
+            "Ask the AI Lead to implement ai.analyze_photo()."
+        )
+
+    except ValueError as e:
+
+        st.warning(str(e))
+
+    except Exception as e:
+
+        st.error(f"Unable to submit report: {e}")
 
 st.subheader("Obstacle reports")
 if not visible:
@@ -126,3 +335,8 @@ for report in visible:
                 st.image(str(photo), width=360)
             except Exception:
                 st.caption("Photo unavailable.")
+
+from get_it_done_view import show_get_it_done_map
+
+with st.expander("Explore Real San Diego Reports"):
+    show_get_it_done_map()
