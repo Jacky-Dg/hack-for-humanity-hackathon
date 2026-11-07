@@ -13,6 +13,7 @@ Designed for one Streamlit process and a single-day demo.
 from __future__ import annotations
 
 import base64
+import hashlib
 import io
 import json
 import math
@@ -39,6 +40,30 @@ SEVERITIES = {"impassable", "difficult", "minor"}
 PROFILES = {"wheelchair", "walking_aid"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 _LOCK = threading.RLock()
+DUPLICATE_RADIUS_M = 15  # same obstacle type reported this close = duplicate
+
+
+def _meters_between(lat1, lng1, lat2, lng2) -> float:
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    a = (math.sin((p2 - p1) / 2) ** 2 +
+         math.cos(p1) * math.cos(p2) * math.sin(math.radians(lng2 - lng1) / 2) ** 2)
+    return 6_371_000 * 2 * math.asin(math.sqrt(a))
+
+
+def _find_duplicate(rows: list[dict], photo_hash: str, lat: float, lng: float,
+                    obstacle_type: str) -> str | None:
+    """Return a user-facing reason if this report duplicates an existing one."""
+    for row in rows:
+        if row.get("photo_sha256") == photo_hash:
+            return "This photo was already reported."
+        try:
+            far = _meters_between(lat, lng, float(row["lat"]), float(row["lng"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if row.get("type") == obstacle_type and far <= DUPLICATE_RADIUS_M:
+            label = obstacle_type.replace("_", " ")
+            return f"This obstacle ({label}) was already reported {far:.0f} m from here, so no new pin was added."
+    return None
 
 
 def _timestamp() -> str:
@@ -183,7 +208,9 @@ def save_report(photo, lat: float, lng: float, analysis: dict,
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,50}", report_id):
         raise ValueError("Invalid report ID")
 
-    jpeg = _normalized_jpeg(_photo_bytes(photo))
+    raw = _photo_bytes(photo)
+    photo_hash = hashlib.sha256(raw).hexdigest()
+    jpeg = _normalized_jpeg(raw)
     image_path = PHOTOS_DIR / f"{report_id}.jpg"
     report = {
         "id": report_id,
@@ -191,6 +218,7 @@ def save_report(photo, lat: float, lng: float, analysis: dict,
         "lng": lng,
         "photo_url": f"photos/{report_id}.jpg",
         **clean_analysis,
+        "photo_sha256": photo_hash,
         "reported_at": _timestamp(),
     }
 
@@ -198,6 +226,9 @@ def save_report(photo, lat: float, lng: float, analysis: dict,
         rows = _load_list(REPORTS_FILE)
         if any(row.get("id") == report_id for row in rows):
             raise ValueError(f"Report ID already exists: {report_id}")
+        duplicate = _find_duplicate(rows, photo_hash, lat, lng, clean_analysis["type"])
+        if duplicate:
+            raise ValueError(duplicate)
         # Save photo first, then make it visible to map in reports.json.
         image_path.write_bytes(jpeg)
         try:
