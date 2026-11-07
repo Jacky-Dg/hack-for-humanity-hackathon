@@ -68,3 +68,33 @@ Building locations do not establish accessible entrances or path geometry.
 Streamlit Community Cloud: select this repository, `app.py`, and install from
 `requirements.txt`. The backend lead should handle durable persistence; local
 files on the hosted app are not a durable database.
+
+
+## Google Maps and more destinations
+
+The sidebar supports nine campus locations and typed addresses. The Google Maps
+link works without an API key. The two stored OpenStreetMap routes remain available
+for Library Walk / Geisel; other journeys require Google Routes for in-app comparison.
+
+For in-app Google routing and display, enable billing and these APIs in your team's
+Google Cloud project. Put keys in `.streamlit/secrets.toml` (gitignored) or Cloud secrets:
+
+```toml
+GOOGLE_MAPS_API_KEY = "your-server-key-for-Routes-API"
+GOOGLE_MAPS_BROWSER_KEY = "your-browser-key-for-Maps-JavaScript-API"
+```
+
+Restrict the server key to Routes API and the browser key to Maps JavaScript API
+and your permitted localhost / deployed website referrers. The browser key is
+intentionally sent to the browser; never use your Gemini key for this.
+
+Click **Find Google walking routes** to request routes. Results stay in session
+until endpoints change; they are not written to disk. Google may return only one
+route. Gemini compares actual returned geometry against profile-specific reports;
+it cannot guarantee obstacle avoidance or wheelchair access. Google walking routes
+may be missing sidewalks/pedestrian paths. Unknown slopes and widths remain unknown.
+Google route geometry is displayed only on the Google map; the OpenStreetMap
+community map remains available for reporting locations.
+
+Setup: https://developers.google.com/maps/documentation/javascript/get-api-key
+Routing: https://developers.google.com/maps/documentation/routes/compute_route_directions

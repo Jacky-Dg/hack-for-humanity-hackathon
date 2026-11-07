@@ -11,6 +11,7 @@ from backend import save_report
 
 from map_ui import build_map, local_photo, relevant_reports, route_context
 from routes import ROUTES, START_NAME, END_NAME
+from google_maps_ui import setting, fetch_routes, render_google_map, directions_url
 
 ROOT = Path(__file__).resolve().parent
 st.set_page_config(page_title="ClearPath · UCSD", page_icon="📍", layout="wide")
@@ -125,10 +126,17 @@ else:
 
 def change_endpoint(changed):
     other = "destination" if changed == "origin" else "origin"
-    st.session_state[other] = END_NAME if st.session_state[changed] == START_NAME else START_NAME
+    if st.session_state.get(other) == st.session_state[changed]:
+        st.session_state[other] = END_NAME if st.session_state[changed] == START_NAME else START_NAME
     st.session_state.pop("recommendation", None)
 
 
+CAMPUS_LOCATIONS = [START_NAME, END_NAME, "Price Center, UC San Diego",
+                    "RIMAC, UC San Diego", "Warren Mall, UC San Diego",
+                    "Sixth College, UC San Diego", "UC San Diego Central Campus Station",
+                    "WongAvery Library, UC San Diego", "Mandeville Center, UC San Diego"]
+route_key = setting("GOOGLE_MAPS_API_KEY")
+browser_key = setting("GOOGLE_MAPS_BROWSER_KEY")
 st.session_state.setdefault("origin", START_NAME)
 st.session_state.setdefault("destination", END_NAME)
 
@@ -136,11 +144,24 @@ with st.sidebar:
     st.header("Plan your path")
     profile = st.radio("Mobility profile", ["wheelchair", "walking_aid"],
                        format_func=lambda p: {"wheelchair": "Wheelchair", "walking_aid": "Walker / crutches / cane"}[p])
-    origin = st.selectbox("From", [START_NAME, END_NAME], key="origin",
+    origin = st.selectbox("From", CAMPUS_LOCATIONS, key="origin", accept_new_options=True,
                           on_change=change_endpoint, args=("origin",))
-    destination = st.selectbox("To", [START_NAME, END_NAME], key="destination",
+    destination = st.selectbox("To", CAMPUS_LOCATIONS, key="destination", accept_new_options=True,
                                on_change=change_endpoint, args=("destination",))
-    st.caption("Demo locations: Library Walk and Geisel. Select either direction.")
+    st.caption("Choose a campus location or type a specific address.")
+    st.link_button("Open walking directions in Google Maps", directions_url(origin, destination))
+    if not route_key:
+        st.caption("Enable in-app routing with GOOGLE_MAPS_API_KEY (Routes API).")
+    if st.button("Find Google walking routes", disabled=not route_key or origin == destination):
+        try:
+            with st.spinner("Finding walking routes…"):
+                result = fetch_routes(origin, destination, route_key)
+            st.session_state["google_journey"] = {"journey": (origin, destination), "routes": result}
+            st.session_state.pop("recommendation", None)
+        except (ValueError, OSError) as exc:
+            st.error(str(exc))
+        except Exception:
+            st.error("Could not reach Google Routes. Check connectivity and API setup.")
     st.button("Refresh reports", use_container_width=True)
     show_all = st.checkbox("Show reports for both profiles", value=False)
     st.divider()
@@ -152,13 +173,21 @@ active_routes = [
      "points": list(reversed(route["points"])) if origin == END_NAME else list(route["points"]),
      "start_name": origin, "end_name": destination}
     for route in ROUTES
-]
+] if {origin, destination} == {START_NAME, END_NAME} else []
+google_journey = st.session_state.get("google_journey")
+if google_journey and google_journey["journey"] == (origin, destination):
+    active_routes = google_journey["routes"]
 journey = (origin, destination)
 
 reports = load_reports()
 visible = [r for r in reports if r.get("is_obstacle") is True] if show_all else relevant_reports(reports, profile)
 contexts = route_context(active_routes, reports, profile)
-st.warning("Prototype: routes follow OpenStreetMap path geometry. Accessibility and current conditions have not been checked on site.")
+if active_routes and active_routes[0].get("source") == "Google Maps":
+    st.warning("Google walking routes may be missing sidewalks or pedestrian paths. They are not verified accessible routes. Community reports may also be incomplete.")
+else:
+    st.caption("Community map: accessibility and current path conditions are unverified.")
+if not active_routes:
+    st.info("For this journey, open Google Maps using the sidebar link, or configure the API keys and click Find Google walking routes.")
 
 map_col, info_col = st.columns([2.2, 1], gap="large")
 with info_col:
@@ -171,7 +200,7 @@ with info_col:
         blocked = sum(r.get("severity") == "impassable" for r in nearby)
         st.markdown(f'**{candidate["name"]}** · about {candidate["distance_m"]} m — {len(nearby)} nearby reports' + (f" · {blocked} impassable" if blocked else ""))
     st.caption("Nearby = within 15 m of a candidate line; proximity does not prove a path is blocked. No reports does not mean a path is clear.")
-    if st.button("Ask Gemini to compare", type="primary", use_container_width=True):
+    if st.button("Ask Gemini to compare", type="primary", use_container_width=True, disabled=not active_routes):
         try:
             from ai import pick_route
         except ImportError:
@@ -197,7 +226,15 @@ with info_col:
     st.metric("Reports shown", len(visible))
 
 with map_col:
-    map_result = st_folium(build_map(visible, active_routes, selected_id,
+    if active_routes and active_routes[0].get("source") == "Google Maps":
+        if browser_key:
+            render_google_map(active_routes, visible, selected_id, browser_key)
+        else:
+            st.info("Add GOOGLE_MAPS_BROWSER_KEY (Maps JavaScript API) to display Google routes here.")
+            st.link_button("View directions on Google Maps", directions_url(origin, destination))
+        st.caption("Use the community map below to select a report location.")
+    community_routes = [r for r in active_routes if r.get("source") != "Google Maps"]
+    map_result = st_folium(build_map(visible, community_routes, selected_id,
                           st.session_state.get("report_location")),
                           height=580, use_container_width=True,
                           returned_objects=["last_clicked"], key="campus_map")

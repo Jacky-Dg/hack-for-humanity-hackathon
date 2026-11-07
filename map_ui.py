@@ -86,7 +86,7 @@ def build_map(reports, routes, selected_id=None, location=None):
     end = routes[0]["points"][-1] if routes else END
     start_name = routes[0].get("start_name", START_NAME) if routes else START_NAME
     end_name = routes[0].get("end_name", END_NAME) if routes else END_NAME
-    for point, name, icon in [(start, start_name, "play"), (end, end_name, "flag")]:
+    for point, name, icon in ([(start, start_name, "play"), (end, end_name, "flag")] if routes else []):
         folium.Marker(point, tooltip=name,
                       icon=folium.Icon(color="blue", icon=icon)).add_to(campus)
     for report in reports:
