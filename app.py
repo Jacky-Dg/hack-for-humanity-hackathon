@@ -282,7 +282,7 @@ if st.button(
     try:
 
         # Import AI functionality
-        from ai import analyze_photo
+        from analyze import analyze_photo
 
         with st.spinner("Gemini is analyzing your photo..."):
 
@@ -290,6 +290,8 @@ if st.button(
             analysis = analyze_photo(
                 photo.getvalue()
             )
+            if analysis is None:
+                raise ValueError("Gemini couldn't analyze this photo right now. Please try again.")
 
             # STEP 5: Save report using backend
             report = save_report(

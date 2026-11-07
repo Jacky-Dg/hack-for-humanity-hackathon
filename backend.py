@@ -36,7 +36,7 @@ PHOTOS_DIR.mkdir(exist_ok=True)
 
 TYPES = {"broken_elevator", "blocked_ramp", "construction", "stairs", "steep_slope", "debris", "other"}
 SEVERITIES = {"impassable", "difficult", "minor"}
-PROFILES = {"wheelchair", "low_vision"}
+PROFILES = {"wheelchair", "walking_aid"}
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
 _LOCK = threading.RLock()
 
@@ -156,7 +156,8 @@ def _validate_analysis(analysis: dict) -> dict:
         "severity": severity,
         "affects": {
             "wheelchair": _bool_field(affects.get("wheelchair"), "wheelchair"),
-            "low_vision": _bool_field(affects.get("low_vision"), "low_vision"),
+            # Missing (e.g. an older low_vision prompt) counts as affected, so the pin still shows.
+            "walking_aid": _bool_field(affects.get("walking_aid", True), "walking_aid"),
         },
         "explanation": explanation.strip()[:1200],
     }
@@ -213,7 +214,7 @@ def save_feedback(route_id: str, profile: str, rating: int) -> dict:
     if not isinstance(route_id, str) or not route_id.strip():
         raise ValueError("Route ID is required")
     if profile not in PROFILES:
-        raise ValueError("Profile must be wheelchair or low_vision")
+        raise ValueError("Profile must be wheelchair or walking_aid")
     if type(rating) is not int or rating not in (0, 1):
         raise ValueError("Rating must be 0 (down) or 1 (up)")
     feedback = {

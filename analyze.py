@@ -30,7 +30,7 @@ TIMEOUT_MS = 20_000
 
 class Affects(BaseModel):
     wheelchair: bool
-    cane_walker: bool
+    walking_aid: bool
 
 
 class PhotoAnalysis(BaseModel):
@@ -52,7 +52,7 @@ elevator, or ramp (selfie, food, pet, screenshot, indoor room with nothing wrong
 it is too blurry or dark to judge, or if the path is clear and usable. Normal wear,
 hairline cracks, shadows, and objects kept out of the path are not obstacles.
 If is_obstacle=false, set type="other", severity="minor",
-affects={"wheelchair": false, "cane_walker": false}, and say why in explanation.
+affects={"wheelchair": false, "walking_aid": false}, and say why in explanation.
 
 STEP 2: type (pick the main problem)
 - broken_elevator: out-of-order sign, closed or taped-off doors, a dark or
@@ -80,7 +80,7 @@ STEP 4: affects
 - wheelchair: true for anything that blocks or narrows a smooth, level, firm path,
   including stairs, slopes, uplifts, blockages, broken elevators, and debris that
   wheels can't roll over.
-- cane_walker: true for people who walk with a cane, walker, or crutches. Mark it
+- walking_aid: true for people who walk with a cane, walker, or crutches. Mark it
   for trip and fall hazards (uplift, cracks, debris, loose gravel, wet or slippery
   ground), stairs (especially without a handrail), steep slopes, broken elevators
   (they would have to take the stairs), long detours, and uneven or soft ground.
@@ -147,7 +147,7 @@ def analyze_photo(image_bytes):
                 raise ValueError("empty explanation")
             if not result.is_obstacle:  # keep non-obstacles uniform for the app
                 result.type, result.severity = "other", "minor"
-                result.affects = Affects(wheelchair=False, cane_walker=False)
+                result.affects = Affects(wheelchair=False, walking_aid=False)
             return result.model_dump()
         except Exception as e:
             print(f"analyze_photo attempt {attempt + 1} ({model}) failed: {str(e)[:200]}", file=sys.stderr)

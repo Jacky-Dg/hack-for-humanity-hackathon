@@ -25,8 +25,9 @@ def distance_to_route_m(lat, lng, points):
 
 
 def relevant_reports(reports, profile):
+    # A report with no answer for this profile (e.g. old low_vision data) still shows.
     return [r for r in reports if r.get("is_obstacle") is True
-            and r.get("affects", {}).get(profile) is True]
+            and r.get("affects", {}).get(profile, True) is True]
 
 
 def route_context(routes, reports, profile):

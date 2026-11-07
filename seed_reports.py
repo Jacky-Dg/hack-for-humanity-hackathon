@@ -36,7 +36,7 @@ def main():
                 "severity": row["severity"],
                 "affects": {
                     "wheelchair": as_bool(row["wheelchair"]),
-                    "low_vision": as_bool(row["low_vision"]),
+                    "walking_aid": as_bool(row.get("walking_aid", True)),
                 },
                 "explanation": row["explanation"],
             }

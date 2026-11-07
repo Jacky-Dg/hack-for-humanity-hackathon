@@ -18,4 +18,4 @@ for p in photos:
         continue
     a = r["affects"]
     print(f"{p.name:<28} | {str(r['is_obstacle']):<5} | {r['type']:<15} | {r['severity']:<10} | "
-          f"{str(a['wheelchair']):<5} | {str(a['cane_walker']):<5} | {r['explanation']}")
+          f"{str(a['wheelchair']):<5} | {str(a['walking_aid']):<5} | {r['explanation']}")
