@@ -1,0 +1,13 @@
+.git
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+**/dist
+**/.env
+**/.streamlit/secrets.toml
+**/photos/*.jpg
+**/photos/*.png
+backend/data/community_reports.json
+backend/data/feedback.json
+legacy_streamlit/

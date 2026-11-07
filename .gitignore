@@ -1,5 +1,20 @@
-.venv/
-__pycache__/
-.streamlit/secrets.toml
+# Credentials and environments
+.env
+.env.*
+!.env.example
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.streamlit/secrets.toml
+# Build output
+**/node_modules/
+**/dist/
+*.pyc
+# User-submitted data: avoid accidentally publishing personal photos/location reports
+backend/photos/*
+!backend/photos/.gitkeep
+backend/data/community_reports.json
+backend/data/feedback.json
+# Large raw City data -- only compact, source-labeled snapshot is committed
+*get_it_done_requests_open_datasd.csv
 .DS_Store
-get_it_done_requests_open_datasd.csv
