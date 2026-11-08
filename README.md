@@ -1,4 +1,4 @@
-# ClearPath 2.0 · San Diego
+# ClearPath · San Diego
 
 **Mobile-first, community-powered accessible pedestrian routing.** Built with React, Vite, Tailwind CSS, Leaflet, Python, FastAPI, pandas, scikit-learn and Gemini.
 
