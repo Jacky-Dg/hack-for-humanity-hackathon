@@ -95,4 +95,7 @@ cd backend
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
+## 📊 Pitch deck
+**[Open our presentation slides](https://claude.ai/artifact/VS7a5QXMRxDMLrevpjWRD7)**
+
 Before demoing, test one GPS permission, one destination search, one demo route, one photo/text report, and one real route with your ORS key. Always verify any route on site; do not claim it is safe for a particular user.
